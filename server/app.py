@@ -1,0 +1,102 @@
+from flask import Flask,g,jsonify,request
+import sqlite3
+
+
+app = Flask(__name__)
+
+def connect_db():
+    sql = sqlite3.connect('C:\\Users\\029421793\\Bughound_Project\\server\\db\\bughound.db')
+    sql.row_factory = sqlite3.Row
+    return sql
+
+def get_db():
+    if not hasattr(g,"sqlite3"):
+        g.sqlite_db = connect_db()
+    return g.sqlite_db
+
+@app.teardown_appcontext
+def close_db(error):
+    if hasattr(g,'sqlite_db'):
+        g.sqlite_db.close()
+
+
+#Employee Functions
+#add employee
+@app.route("/add_employee",methods=["POST"])
+def add_employee():
+    inp = request.get_json()
+    name = inp["name"]
+    username = inp["username"]
+    password = inp["password"]
+    user_level = inp["user_level"]
+    db=get_db()
+    db.execute('insert into employees (name,username,password,userlevel) values(?,?,?,?)',[name,username,password,user_level] )
+    db.commit()
+    return inp
+
+#Update Employee
+@app.route("/update_employee",methods=["POST"])
+def update_employee():
+    pass
+
+#delete Employee
+@app.route("/delete_employee",methods=["POST"])
+def delete_employee():
+    inp = request.get_json()
+    emp_id = inp["emp_id"]
+    db=get_db()
+    db.execute('delete from employees where emp_id={0}'.format(emp_id))
+    db.commit()
+
+    return 
+
+
+#add programs
+@app.route("/add_program",methods=["POST"])
+def add_program():
+    inp = request.get_json()
+    program = inp["program"]
+    program_release = inp["program_release"]
+    program_version = inp["program_version"]
+
+    db=get_db()
+    db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
+    db.commit()
+    return inp
+
+#delete programs
+@app.route("/delete_program",methods=["POST"])
+def delete_program():
+    inp = request.get_json()
+    prog_id = inp["prog_id"]
+    db=get_db()
+    db.execute('delete from programs where prog_id={0}'.format(prog_id))
+    db.commit()
+
+    return 
+
+#add areas
+@app.route("/add_area",methods=["POST"])
+def add_area():
+    inp = request.get_json()
+    prog_id = inp["prog_id"]
+    area = inp["area"]
+    db=get_db()
+    db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area] )
+    db.commit()
+    return inp
+
+#delete area
+@app.route("/delete_area",methods=["POST"])
+def delete_area():
+    inp = request.get_json()
+    area_id = inp["area_id"]
+    db=get_db()
+    db.execute('delete from areas where prog_id={0}'.format(area_id))
+    db.commit()
+
+    return "delted successfully"
+
+if __name__ == "__main__":
+    app.run()
+
