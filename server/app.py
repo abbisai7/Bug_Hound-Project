@@ -37,7 +37,23 @@ def add_employee():
 #Update Employee
 @app.route("/update_employee",methods=["POST"])
 def update_employee():
-    pass
+    inp = request.get_json()
+    emp_id = inp["emp_id"]
+    inp.pop("emp_id")
+    update_stmts = []
+    for key, value in inp.items():
+        if isinstance(value,int):
+           update_stmts.append(f"{key} = {value}") 
+        else:
+            update_stmts.append(f"{key} = '{value}'")
+    
+    update_query = f"UPDATE employees SET {', '.join(update_stmts)} WHERE emp_id = {emp_id}"
+    print(update_query)
+    db = get_db()
+    db.execute(update_query)
+    db.commit()
+
+    return "employee data updated Successfully"
 
 #delete Employee
 @app.route("/delete_employee",methods=["POST"])
@@ -48,7 +64,7 @@ def delete_employee():
     db.execute('delete from employees where emp_id={0}'.format(emp_id))
     db.commit()
 
-    return 
+    return "employee deletd successfully"
 
 
 #add programs
@@ -63,6 +79,26 @@ def add_program():
     db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
     db.commit()
     return inp
+
+#Update Program
+@app.route("/update_program",methods=["POST"])
+def update_program():
+    inp = request.get_json()
+    prog_id = inp["prog_id"]
+    inp.pop("prog_id")
+    update_stmts = []
+    for key, value in inp.items():
+        if isinstance(value,int):
+           update_stmts.append(f"{key} = {value}") 
+        else:
+            update_stmts.append(f"{key} = '{value}'")
+    
+    update_query = f"UPDATE programs SET {', '.join(update_stmts)} WHERE prog_id = {prog_id}"
+    db = get_db()
+    db.execute(update_query)
+    db.commit()
+
+    return "program data updated Successfully"
 
 #delete programs
 @app.route("/delete_program",methods=["POST"])
@@ -85,6 +121,26 @@ def add_area():
     db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area] )
     db.commit()
     return inp
+
+#Update Area
+@app.route("/update_area",methods=["POST"])
+def update_area():
+    inp = request.get_json()
+    area_id = inp["area_id"]
+    inp.pop("area_id")
+    update_stmts = []
+    for key, value in inp.items():
+        if isinstance(value,int):
+           update_stmts.append(f"{key} = {value}") 
+        else:
+            update_stmts.append(f"{key} = '{value}'")
+    
+    update_query = f"UPDATE areas SET {', '.join(update_stmts)} WHERE area_id = {area_id}"
+    db = get_db()
+    db.execute(update_query)
+    db.commit()
+
+    return "program data updated Successfully"
 
 #delete area
 @app.route("/delete_area",methods=["POST"])
