@@ -1,4 +1,4 @@
-from flask import Flask,g,jsonify,request
+from flask import Flask,g,request,render_template
 import sqlite3
 
 
@@ -19,7 +19,22 @@ def close_db(error):
     if hasattr(g,'sqlite_db'):
         g.sqlite_db.close()
 
+@app.route("/",methods=["GET"])
+def index():
+    return render_template('index.html')
 
+@app.route("/add_bug")
+def add_bug():
+    return render_template("add_bug.html")
+
+@app.route("/database_maintenance")
+def database_maintenance():
+    return render_template("database_maintenance.html")
+
+@app.route("/update_bug")
+def update_bug():
+    return render_template("update_bug.html")
+    
 #Employee Functions
 #add employee
 @app.route("/add_employee",methods=["POST"])
@@ -154,5 +169,5 @@ def delete_area():
     return "delted successfully"
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="localhost", port=8000, debug=True)
 
