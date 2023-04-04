@@ -1,8 +1,10 @@
-from flask import Flask,g,request,render_template
+from flask import Flask,g,request,render_template,session
 import sqlite3
 
 
 app = Flask(__name__)
+app.config["SECRET_KEY"] = "ThisisSecret!"
+
 
 def connect_db():
     sql = sqlite3.connect('C:\\Users\\029421793\\Bughound_Project\\server\\db\\bughound.db')
@@ -19,10 +21,27 @@ def close_db(error):
     if hasattr(g,'sqlite_db'):
         g.sqlite_db.close()
 
-@app.route("/",methods=["GET"])
+@app.route("/",methods=["GET","POST"])
 def index():
-    return render_template('index.html')
-
+    if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
+        username = str(request.form['username'])
+        password = str(request.form['password'])
+        db = get_db()
+        query = 'SELECT * FROM employees WHERE username = "{0}" and password ="{1}"'.format(username,password)
+        cur = db.execute(query)
+        account = cur.fetchall()
+        if account:
+            session['loggedin'] = True
+            session['id'] = account[0]["emp_id"]
+            session['username'] = account[0]["username"]
+            session['user_level'] = account[0]["userlevel"]
+            condition = False
+            if session['user_level']==3:
+                condition=True
+            return render_template('index.html',condition=condition,name=session["username"],userlevel=session["user_level"])
+        else:
+            return render_template("login.html",msg="True")
+    return render_template('login.html')
 @app.route("/add_bug")
 def add_bug():
     return render_template("add_bug.html")
@@ -37,8 +56,11 @@ def update_bug():
     
 #Employee Functions
 #add employee
-@app.route("/add_employee",methods=["POST"])
+@app.route("/add_employee",methods=["GET","POST"])
 def add_employee():
+    if "loggedin" not in session:
+
+        return render_template("login.html")
     inp = request.get_json()
     name = inp["name"]
     username = inp["username"]
@@ -83,17 +105,22 @@ def delete_employee():
 
 
 #add programs
-@app.route("/add_program",methods=["POST"])
+@app.route("/add_program",methods=["GET","POST"])
 def add_program():
-    inp = request.get_json()
-    program = inp["program"]
-    program_release = inp["program_release"]
-    program_version = inp["program_version"]
-
     db=get_db()
+    cur = db.execute('select * from programs')
+    programs = cur.fetchall()
+    if request.method == "GET":
+        return render_template("add_programs.html",programs=programs,conditon="False")
+    program = request.form['program']
+    program_release = request.form["program_release"]
+    program_version = request.form["program_version"]
     db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
     db.commit()
-    return inp
+    cur = db.execute('select * from programs')
+    programs = cur.fetchall()
+    return render_template("add_programs.html",programs=programs,condition="True",program=program,\
+                           release=program_release,version=program_version)
 
 #Update Program
 @app.route("/update_program",methods=["POST"])
@@ -127,8 +154,10 @@ def delete_program():
     return 
 
 #add areas
-@app.route("/add_area",methods=["POST"])
+@app.route("/add_area",methods=["GET,POST"])
 def add_area():
+    if request.method == "GET":
+        return render_template('add_area.html')
     inp = request.get_json()
     prog_id = inp["prog_id"]
     area = inp["area"]
