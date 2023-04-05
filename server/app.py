@@ -205,18 +205,31 @@ def delete_program():
 
     return 
 
+@app.route("/update_area_id/<prog_id>",methods=["GET","POST"])
+def update_area_id(prog_id):
+    db = get_db()
+    cur = db.execute(f"select * from areas where prog_id='{prog_id}'")
+    data = cur.fetchall()
+    return render_template("update_area_id.html",data=data)
+
 #add areas
-@app.route("/add_area",methods=["GET,POST"])
+@app.route("/add_area",methods=["GET","POST"])
 def add_area():
+    programs = get_programs()
+    if not programs:
+        return render_template("no_programs.html")
     if request.method == "GET":
-        return render_template('add_area.html')
-    inp = request.get_json()
-    prog_id = inp["prog_id"]
-    area = inp["area"]
-    db=get_db()
-    db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area] )
-    db.commit()
-    return inp
+        return render_template('add_area.html',programs=programs)
+    # inp = request.get_json()
+    # prog_id = inp["prog_id"]
+    # area = inp["area"]
+    # db=get_db()
+    # db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area] )
+    # db.commit()
+    # return inp
+
+
+
 
 #Update Area
 @app.route("/update_area",methods=["POST"])
