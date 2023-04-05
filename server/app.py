@@ -68,38 +68,60 @@ def update_bug():
 @app.route("/add_employee",methods=["GET","POST"])
 def add_employee():
     if "loggedin" not in session:
-        flash("Login to proceed")
         return render_template("login.html")
-    inp = request.get_json()
-    name = inp["name"]
-    username = inp["username"]
-    password = inp["password"]
-    user_level = inp["user_level"]
+    if request.method == "GET":
+        return render_template("add_employess.html")
+    
+    name = request.form["name"]
+    username = request.form["user_name"]
+    password = request.form["password"]
+    user_level = request.form["user_level"]
     db=get_db()
     db.execute('insert into employees (name,username,password,userlevel) values(?,?,?,?)',[name,username,password,user_level] )
     db.commit()
-    return inp
+    return render_template("add_employess.html",condition="True",name=name)
 
-#Update Employee
-@app.route("/update_employee",methods=["POST"])
-def update_employee():
-    inp = request.get_json()
-    emp_id = inp["emp_id"]
-    inp.pop("emp_id")
-    update_stmts = []
-    for key, value in inp.items():
-        if isinstance(value,int):
-           update_stmts.append(f"{key} = {value}") 
-        else:
-            update_stmts.append(f"{key} = '{value}'")
-    
-    update_query = f"UPDATE employees SET {', '.join(update_stmts)} WHERE emp_id = {emp_id}"
-    print(update_query)
+def get_employees():
+    db=get_db()
+    cur = db.execute('select * from employees')
+    employees = cur.fetchall()
+    return employees
+
+@app.route("/process_update_employee",methods=["POST"])
+def process_update_employee():
+    emp_id = request.form["emp_id"]
+    name = request.form["name"]
+    username = request.form["username"]
+    password = request.form["password"]
+    user_level = request.form["user_level"]
+
+
+    update_query = f"UPDATE employees SET name='{name}',username='{username}',password='{password}',userlevel='{user_level}' WHERE emp_id = {emp_id}"
     db = get_db()
     db.execute(update_query)
     db.commit()
+    return redirect(url_for("update_employee"))
 
-    return "employee data updated Successfully"
+#Update Employee
+@app.route("/update_employee",methods=["GET","POST"])
+def update_employee():
+    options = ["emp_id","name","username"]
+    employees = get_employees()
+    if request.method == "GET":
+        return render_template("edit_employess.html",\
+                               options=options,employees=employees )
+    search_field = request.form["options"]
+    search_data = request.form["search_data"]
+    query = f"select * from employees where {search_field} = '{search_data}'"
+    db = get_db()
+    cur = db.execute(query)
+    data = cur.fetchall()
+    if data:
+        return render_template("edit_employess.html",options=options,\
+                    condition="True",data=data,employees=employees)
+    else:
+        return render_template("edit_employess.html",employees=employees,options=options,condition1="False")
+    
 
 #delete Employee
 @app.route("/delete_employee",methods=["POST"])
