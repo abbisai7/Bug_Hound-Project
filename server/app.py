@@ -123,16 +123,37 @@ def update_employee():
         return render_template("edit_employess.html",employees=employees,options=options,condition1="False")
     
 
-#delete Employee
-@app.route("/delete_employee",methods=["POST"])
-def delete_employee():
-    inp = request.get_json()
-    emp_id = inp["emp_id"]
+@app.route("/delete_employee_id/<emp_id>",methods=["GET"])
+def delete_employee_id(emp_id):
     db=get_db()
     db.execute('delete from employees where emp_id={0}'.format(emp_id))
     db.commit()
+    return redirect(url_for("delete_employee"))
 
-    return "employee deletd successfully"
+#delete Employee
+@app.route("/delete_employee",methods=["GET","POST"])
+def delete_employee():
+    options = ["emp_id","name","username"]
+    employees = get_employees()
+    if request.method == "GET":
+        return render_template("delete_employess.html",\
+                               options=options,employees=employees )
+    search_field = request.form["options"]
+    search_data = request.form["search_data"]
+    query = f"select * from employees where {search_field} = '{search_data}'"
+    db = get_db()
+    cur = db.execute(query)
+    data = cur.fetchall()
+    if data:
+        return render_template("delete_employess.html",options=options,\
+                    condition="True",data=data,employees=employees)
+    else:
+        return render_template("delete_employess.html",employees=employees,options=options,condition1="False")
+    # inp = request.get_json()
+    # emp_id = inp["emp_id"]
+    # 
+
+    # return "employee deletd successfully"
 
 def get_programs():
     db=get_db()
@@ -205,6 +226,16 @@ def delete_program():
 
     return 
 
+
+@app.route("/update_area_program/<area_id>/<prog_id>",methods=["POST"])
+def update_area_program(area_id,prog_id):
+    area_name = request.form["area_edit"]
+    db = get_db()
+    db.execute(f"update areas set area='{area_name}' where area_id='{area_id}'")
+    db.commit()
+    return redirect(url_for("add_update_area_program",prog_id=prog_id))
+
+
 @app.route("/add_area_program/<prog_id>",methods=["POST"])
 def add_area_program(prog_id):
     area_name = request.form["area_edit"]
@@ -225,7 +256,6 @@ def add_update_area_program(prog_id):
         return render_template("update_area_id.html",data=data,prog_id=prog_id,name=name)
     
 
-
 #add areas
 @app.route("/add_area",methods=["GET","POST"])
 def add_area():
@@ -242,39 +272,12 @@ def add_area():
     # db.commit()
     # return inp
 
-
-
-
-#Update Area
-@app.route("/update_area",methods=["POST"])
-def update_area():
-    inp = request.get_json()
-    area_id = inp["area_id"]
-    inp.pop("area_id")
-    update_stmts = []
-    for key, value in inp.items():
-        if isinstance(value,int):
-           update_stmts.append(f"{key} = {value}") 
-        else:
-            update_stmts.append(f"{key} = '{value}'")
-    
-    update_query = f"UPDATE areas SET {', '.join(update_stmts)} WHERE area_id = {area_id}"
-    db = get_db()
-    db.execute(update_query)
+@app.route("/delete_area/<area_id>/<prog_id>",methods=["GET","POST"])
+def delete_area(area_id,prog_id):
+    db= get_db()
+    db.execute(f"delete from areas where area_id='{area_id}'")
     db.commit()
-
-    return "program data updated Successfully"
-
-#delete area
-@app.route("/delete_area",methods=["POST"])
-def delete_area():
-    inp = request.get_json()
-    area_id = inp["area_id"]
-    db=get_db()
-    db.execute('delete from areas where prog_id={0}'.format(area_id))
-    db.commit()
-
-    return "delted successfully"
+    return redirect(url_for("add_update_area_program",prog_id=prog_id))
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8000, debug=True)
