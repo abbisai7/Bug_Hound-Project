@@ -1,4 +1,4 @@
-from flask import Flask,g,request,render_template,session
+from flask import Flask,g,request,render_template,session,flash,redirect,url_for
 import sqlite3
 
 
@@ -42,6 +42,15 @@ def index():
         else:
             return render_template("login.html",msg="True")
     return render_template('login.html')
+
+@app.route('/logout')
+def logout():
+    if "loggedin" in session:
+        session.pop('loggedin', None)
+    else:
+        flash("You must be logged in first")
+    return render_template("login.html")
+
 @app.route("/add_bug")
 def add_bug():
     return render_template("add_bug.html")
@@ -59,7 +68,7 @@ def update_bug():
 @app.route("/add_employee",methods=["GET","POST"])
 def add_employee():
     if "loggedin" not in session:
-
+        flash("Login to proceed")
         return render_template("login.html")
     inp = request.get_json()
     name = inp["name"]
@@ -103,44 +112,65 @@ def delete_employee():
 
     return "employee deletd successfully"
 
+def get_programs():
+    db=get_db()
+    cur = db.execute('select * from programs')
+    programs = cur.fetchall()
+    return programs
 
 #add programs
 @app.route("/add_program",methods=["GET","POST"])
 def add_program():
-    db=get_db()
-    cur = db.execute('select * from programs')
-    programs = cur.fetchall()
+    if "loggedin" not in session:
+        return render_template("login.html")
+    programs = get_programs()
     if request.method == "GET":
         return render_template("add_programs.html",programs=programs,conditon="False")
     program = request.form['program']
     program_release = request.form["program_release"]
     program_version = request.form["program_version"]
+    db = get_db()
     db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
     db.commit()
-    cur = db.execute('select * from programs')
-    programs = cur.fetchall()
+    programs = get_programs()
     return render_template("add_programs.html",programs=programs,condition="True",program=program,\
                            release=program_release,version=program_version)
 
-#Update Program
-@app.route("/update_program",methods=["POST"])
-def update_program():
-    inp = request.get_json()
-    prog_id = inp["prog_id"]
-    inp.pop("prog_id")
-    update_stmts = []
-    for key, value in inp.items():
-        if isinstance(value,int):
-           update_stmts.append(f"{key} = {value}") 
-        else:
-            update_stmts.append(f"{key} = '{value}'")
+@app.route("/process_update_program",methods=["POST"])
+def process_update_program():
+    prog_id = request.form["prog_id"]
+    program_name = request.form["program_name"]
+    program_release = request.form["program_release"]
+    program_version = request.form["program_version"]
     
-    update_query = f"UPDATE programs SET {', '.join(update_stmts)} WHERE prog_id = {prog_id}"
+    update_query = f"UPDATE programs SET program='{program_name}',program_release='{program_release}',program_version='{program_version}' WHERE prog_id = {prog_id}"
     db = get_db()
     db.execute(update_query)
     db.commit()
+    return redirect(url_for("update_program"))
+    
 
-    return "program data updated Successfully"
+
+#Update Program
+@app.route("/update_program",methods=["GET","POST"])
+def update_program():
+    options = ["prog_id","program"]
+    programs = get_programs()
+    if request.method == "GET":
+        return render_template("edit_programs.html",\
+                               options=options,programs=programs)
+    search_field = request.form["options"]
+    search_data = request.form["search_data"]
+    query = f"select * from programs where {search_field} = '{search_data}'"
+    db = get_db()
+    cur = db.execute(query)
+    data = cur.fetchall()
+    if data:
+        return render_template("edit_programs.html",options=options,\
+                    condition="True",data=data,programs=programs,name=str(data[0][1]))
+    else:
+        return render_template("edit_programs.html",programs=programs,options=options,condition1="False")
+    return f"program data updated Successfully"
 
 #delete programs
 @app.route("/delete_program",methods=["POST"])

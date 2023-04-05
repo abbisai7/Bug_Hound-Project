@@ -16,10 +16,8 @@
         </tr>
         {% endfor %}    
     </table>
-    {% if condtion %}
-    <h3>Program {{program}} with {{release}} and {{version}} has been updated successfully </h3>
-    {% endif %}
     <h1> Add Program</h1>
+    <a href="{{url_for('logout')}}">LogOut</a>
     <form action="{{url_for('add_program')}}" method="POST">
         <label for="program">Program Name</label>&nbsp&nbsp;
         <input name="program" type="text" class="textbox"/></br></br></br>
@@ -29,6 +27,9 @@
         <input id="program_version" name="program_version" type="number" class="textbox"/></br></br></br>
         <input type="submit" class="btn" value="Submit">
     </form>
+    {% if condition %}
+    <h3>Program {{program}} with {{release}} and {{version}} has been updated successfully </h3>
+    {% endif %}
     
 </body>
 </html>
