@@ -5,7 +5,7 @@ import sqlite3
 app = Flask(__name__)
 app.config["SECRET_KEY"] = "ThisisSecret!"
 
-
+############### DB CONNECTIONS ########################
 def connect_db():
     sql = sqlite3.connect('C:\\Users\\029421793\\Bughound_Project\\server\\db\\bughound.db')
     sql.row_factory = sqlite3.Row
@@ -21,6 +21,7 @@ def close_db(error):
     if hasattr(g,'sqlite_db'):
         g.sqlite_db.close()
 
+################## INDEX, LOGIN, LOGOUT #####################
 @app.route("/",methods=["GET","POST"])
 def index():
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
@@ -55,14 +56,15 @@ def logout():
 def add_bug():
     return render_template("add_bug.html")
 
+@app.route("/update_bug")
+def update_bug():
+    return render_template("update_bug.html")
+
 @app.route("/database_maintenance")
 def database_maintenance():
     return render_template("database_maintenance.html")
 
-@app.route("/update_bug")
-def update_bug():
-    return render_template("update_bug.html")
-    
+######################## EMPLOYEE #######################
 #Employee Functions
 #add employee
 @app.route("/add_employee",methods=["GET","POST"])
@@ -155,6 +157,8 @@ def delete_employee():
 
     # return "employee deletd successfully"
 
+###########Programs############
+
 def get_programs():
     db=get_db()
     cur = db.execute('select * from programs')
@@ -215,18 +219,40 @@ def update_program():
         return render_template("edit_programs.html",programs=programs,options=options,condition1="False")
     return f"program data updated Successfully"
 
-#delete programs
-@app.route("/delete_program",methods=["POST"])
-def delete_program():
-    inp = request.get_json()
-    prog_id = inp["prog_id"]
+@app.route("/delete_prorgam_id/<prog_id>",methods=["GET"])
+def delete_program_id(prog_id):
     db=get_db()
     db.execute('delete from programs where prog_id={0}'.format(prog_id))
     db.commit()
+    return redirect(url_for("delete_program"))
 
-    return 
+#delete programs
+@app.route("/delete_program",methods=["GET","POST"])
+def delete_program():
+    options = ["prog_id","program"]
+    programs = get_programs()
+    if request.method == "GET":
+        return render_template("delete_programs.html",\
+                               options=options,programs=programs)
+    search_field = request.form["options"]
+    search_data = request.form["search_data"]
+    query = f"select * from programs where {search_field} = '{search_data}'"
+    db = get_db()
+    cur = db.execute(query)
+    data = cur.fetchall()
+    if data:
+        return render_template("delete_programs.html",options=options,\
+                    condition="True",data=data,programs=programs,name=str(data[0][1]))
+    else:
+        return render_template("delete_programs.html",programs=programs,options=options,condition1="False")
+    # inp = request.get_json()
+    # prog_id = inp["prog_id"]
+    # db=get_db()
+    # db.execute('delete from programs where prog_id={0}'.format(prog_id))
+    # db.commit()
 
-
+  
+############AREAS#################
 @app.route("/update_area_program/<area_id>/<prog_id>",methods=["POST"])
 def update_area_program(area_id,prog_id):
     area_name = request.form["area_edit"]
@@ -234,6 +260,7 @@ def update_area_program(area_id,prog_id):
     db.execute(f"update areas set area='{area_name}' where area_id='{area_id}'")
     db.commit()
     return redirect(url_for("add_update_area_program",prog_id=prog_id))
+
 
 
 @app.route("/add_area_program/<prog_id>",methods=["POST"])
