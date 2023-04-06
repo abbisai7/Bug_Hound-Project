@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Program</title>
+</head>
+<body>
+    <table style="width:25%", border="1">
+        {% for item in programs %}    
+        <tr>               
+            <td>{{item[1]}}</td>
+            <td>{{item[2]}}</td>
+            <td>{{item[3]}}</td>                            
+        </tr>
+        {% endfor %}    
+    </table>
+    <h1> Add Program</h1>
+    <a href="{{url_for('logout')}}">LogOut</a>
+    <form action="{{url_for('add_program')}}" method="POST">
+        <label for="program">Program Name</label>&nbsp&nbsp;
+        <input name="program" type="text" class="textbox"/></br></br></br>
+        <label for="program_release">Program Relase</label>&nbsp&nbsp;
+        <input id="program_release" name="program_release" type="number" class="textbox"/></br></br></br>
+        <label for="program_version">Program Version</label>&nbsp&nbsp;
+        <input id="program_version" name="program_version" type="number" class="textbox"/></br></br></br>
+        <input type="submit" class="btn" value="Submit">
+    </form>
+    {% if condition %}
+    <h3>Program {{program}} with {{release}} and {{version}} has been updated successfully </h3>
+    {% endif %}
+    
+</body>
+</html>

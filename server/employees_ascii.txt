@@ -1,0 +1,2 @@
+1002	admin_role	admin	admin	3
+1006	Sai Chaithanya	abbisai	12345678	2
