@@ -1,4 +1,5 @@
 from flask import Flask,g,request,render_template,session,flash,redirect,url_for
+import xml.etree.ElementTree as ET
 import sqlite3
 
 
@@ -305,6 +306,42 @@ def delete_area(area_id,prog_id):
     db.execute(f"delete from areas where area_id='{area_id}'")
     db.commit()
     return redirect(url_for("add_update_area_program",prog_id=prog_id))
+
+
+######## Export Program table to XML #######################
+@app.route("/export_program_xml",methods=["GET"])
+def export_program_xml():
+    db = get_db()
+    cur = db.execute("select * from programs")
+    rows = cur.fetchall()
+    root = ET.Element('my_table')
+
+    for row in rows:
+        row_elem = ET.SubElement(root, 'row')
+        for i, col in enumerate(row):
+            col_elem = ET.SubElement(row_elem, f'col{i}')
+            col_elem.text = str(col)
+
+  
+    tree = ET.ElementTree(root)
+    tree.write('programs.xml', encoding='utf-8')
+    return f'<h1>Downloaded Successfully</h1>'
+
+
+###################### Export Employees to ASCII ############################
+
+@app.route("/export_employee_ascii")
+def export_employee_ascii():
+    db = get_db()
+    cur = db.execute("select * from employees")
+    rows = cur.fetchall()
+    with open('employees_ascii.txt', 'w') as f:
+        for row in rows:
+            f.write('\t'.join(str(col) for col in row) + '\n')
+    return f"<h1>Downloaded Successfully"
+
+
+
 
 if __name__ == "__main__":
     app.run(host="localhost", port=8000, debug=True)
