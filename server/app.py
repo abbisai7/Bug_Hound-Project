@@ -1,6 +1,7 @@
 from flask import Flask,g,request,render_template,session,flash,redirect,url_for
 import xml.etree.ElementTree as ET
 import sqlite3
+import datetime
 
 
 app = Flask(__name__)
@@ -23,6 +24,13 @@ def close_db(error):
         g.sqlite_db.close()
 
 ################## INDEX, LOGIN, LOGOUT #####################
+@app.route("/index_page",methods=["GET"])
+def index_page():
+    if "loggedin" in session:
+        condition = False
+        if session['user_level']==3:
+            condition=True
+    return render_template('index.html',condition=condition,name=session["username"],userlevel=session["user_level"])
 @app.route("/",methods=["GET","POST"])
 def index():
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
@@ -53,9 +61,57 @@ def logout():
         flash("You must be logged in first")
     return render_template("login.html")
 
-@app.route("/add_bug")
+########### HELPER FUNCTIONS #########################
+def get_programs():
+    db=get_db()
+    cur = db.execute('select * from programs')
+    programs = cur.fetchall()
+    return programs
+
+def get_employees():
+    db=get_db()
+    cur = db.execute('select * from employees')
+    employees = cur.fetchall()
+    return employees
+
+def get_area():
+    db = get_db()
+    cur = db.execute("select * from areas")
+    areas = cur.fetchall()
+    return areas
+####################### BUG######################
+
+@app.route("/add_bug",methods=["GET","POST"])
 def add_bug():
-    return render_template("add_bug.html")
+    if request.method=="POST":
+        form_data = request.form.to_dict()
+        columns = []
+        values = []
+        for key, value in form_data.items():
+            if value:
+                columns.append(key)
+                values.append(value)
+        
+        db = get_db()
+        query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({', '.join(str(i) for i in values)})"
+        print(query)
+        db.execute(query)
+        db.commit()
+        return redirect(url_for("add_bug"))
+    ##options for form
+    programs = get_programs()
+    areas = get_area()
+    employees = get_employees()
+    report_options = ["Coding Error","Design Issue","Suggestion","Documentation","Hardware","Query"]
+    severity = ["Minor", "Serious", "Fatal"]
+    status=["open","closed","resolved"]
+    priority = [1,2,3,4,5,6]
+    resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
+                  "Disagree with suggestion","Duplicate"]
+    #entry_date = datetime.datetime.now().strftime("%m/%d/%Y")
+    return render_template("add_bug.html",program_options=programs,\
+                           report_options=report_options,severity=severity,employees=employees,\
+                            areas=areas,status=status,priority=priority,resolution=resolution)
 
 @app.route("/update_bug")
 def update_bug():
@@ -84,11 +140,7 @@ def add_employee():
     db.commit()
     return render_template("add_employess.html",condition="True",name=name)
 
-def get_employees():
-    db=get_db()
-    cur = db.execute('select * from employees')
-    employees = cur.fetchall()
-    return employees
+
 
 @app.route("/process_update_employee",methods=["POST"])
 def process_update_employee():
@@ -160,11 +212,7 @@ def delete_employee():
 
 ###########Programs############
 
-def get_programs():
-    db=get_db()
-    cur = db.execute('select * from programs')
-    programs = cur.fetchall()
-    return programs
+
 
 #add programs
 @app.route("/add_program",methods=["GET","POST"])
