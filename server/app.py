@@ -87,15 +87,16 @@ def add_bug():
         form_data = request.form.to_dict()
         columns = []
         values = []
+        placeholders= []
         for key, value in form_data.items():
             if value:
                 columns.append(key)
                 values.append(value)
+                placeholders.append("?")
         
         db = get_db()
-        query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({', '.join(str(i) for i in values)})"
-        print(query)
-        db.execute(query)
+        query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({','.join(placeholders)})"
+        db.execute(query,values)
         db.commit()
         return redirect(url_for("add_bug"))
     ##options for form
@@ -113,10 +114,32 @@ def add_bug():
                            report_options=report_options,severity=severity,employees=employees,\
                             areas=areas,status=status,priority=priority,resolution=resolution)
 
-@app.route("/update_bug")
+@app.route("/update_bug",methods=["GET","POST"])
 def update_bug():
     return render_template("update_bug.html")
 
+@app.route("/search_bug",methods=["GET","POST"])
+def search_bug():
+    db=get_db()
+    query = 'select * from bugs'
+    cur = db.execute(query)
+    data= cur.fetchall()
+    programs =[i[1] for i in data]
+    report_type=[i[2] for i in data]
+    severity=[i[3] for i in data]
+    area = [i[9] for i in data]
+    assigned_to=[i[10] for i in data]
+    reported_by=[i[8] for i in data]
+    status=[i[12] for i in data]
+    priority=[i[13] for i in data]
+    resolution=[i[14] for i in data]
+    return render_template("search_bug.html",programs=programs,report_type=report_type,severity=severity,\
+                           area=area,assigned_to=assigned_to,reported_by=reported_by,status=status,\
+                            priority=priority,resolution=resolution)
+
+
+
+################## DATABASE MAINTENANCE ##########################
 @app.route("/database_maintenance")
 def database_maintenance():
     return render_template("database_maintenance.html")
