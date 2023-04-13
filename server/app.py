@@ -114,9 +114,81 @@ def add_bug():
                            report_options=report_options,severity=severity,employees=employees,\
                             areas=areas,status=status,priority=priority,resolution=resolution)
 
-@app.route("/update_bug",methods=["GET","POST"])
-def update_bug():
-    return render_template("update_bug.html")
+@app.route("/update_bug/<bug_id>",methods=["GET","POST"])
+def update_bug(bug_id):
+    db = get_db()
+    if request.method == "POST":
+        form_data = request.form.to_dict()
+        columns = []
+        values = []
+        placeholders= []
+        for key, value in form_data.items():
+            if value:
+                columns.append(key)
+                values.append(value)
+                placeholders.append("?")
+        
+        sql_query = "UPDATE bugs SET "
+        for i, col in enumerate(columns):
+            sql_query += f"{col} = {placeholders[i]}"
+            if i != len(columns) - 1:
+                sql_query += ", "
+        sql_query += " WHERE id = ?"
+        db.execute(sql_query,values+[bug_id])
+        db.commit()
+
+    
+    query = f"select * from bugs where bug_id={bug_id}"
+    cur = db.execute(query)
+    data = cur.fetchall()
+    programs = get_programs()
+    employees = get_employees()
+    areas = get_area()
+    report_options = ["Coding Error","Design Issue","Suggestion","Documentation","Hardware","Query"]
+    severity = ["Minor", "Serious", "Fatal"]
+    status=["open","closed","resolved"]
+    priority = [1,2,3,4,5,6]
+    resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
+                  "Disagree with suggestion","Duplicate"]
+    return render_template("update_bug.html",bug_id=bug_id,data=data,programs=programs,report_options=report_options,\
+                           severity=severity,employees=employees,areas=areas,\
+                            status=status,priority=priority,resolution=resolution)
+
+@app.route("/result_bug",methods=["GET","POST"])
+def result_bug():
+    program = request.form['program_options']
+    report_type = request.form['report_options']
+    severity = request.form['severity']
+    areas = request.form['areas']
+    assigned_to = request.form['assigned_to']
+    reported_by = request.form['reported_by']
+    status = request.form['status']
+    priority = request.form['priority']
+    resolution = request.form['resolution']
+    db=get_db()
+    query = "SELECT * FROM bugs WHERE "
+    if program != 'ALL':
+        query += f"program_options = '{program}' AND "
+    if report_type != 'ALL':
+        query += f"report_type = '{report_type}' AND "
+    if severity != 'ALL':
+        query += f"severity = '{severity}' AND "
+    if areas != 'ALL':
+        query += f"functional_area = '{areas}' AND "
+    if assigned_to != 'ALL':
+        query += f"assigned_to = '{assigned_to}' AND "
+    if reported_by != 'ALL':
+        query += f"reported_by = '{reported_by}' AND "
+    if status != 'ALL':
+        query += f"status = '{status}' AND "
+    if priority != 'ALL':
+        query += f"priority = '{priority}' AND "
+    if resolution != 'ALL':
+        query += f"resolution = '{resolution}' AND "
+    query = query[:-5]
+    results = db.execute(query)
+    data = results.fetchall()
+    return render_template("result_bug.html",data=data)
 
 @app.route("/search_bug",methods=["GET","POST"])
 def search_bug():
@@ -129,7 +201,7 @@ def search_bug():
     severity=[i[3] for i in data]
     area = [i[9] for i in data]
     assigned_to=[i[10] for i in data]
-    reported_by=[i[8] for i in data]
+    reported_by=[i[7] for i in data]
     status=[i[12] for i in data]
     priority=[i[13] for i in data]
     resolution=[i[14] for i in data]
