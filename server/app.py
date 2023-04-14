@@ -1,7 +1,7 @@
-from flask import Flask,g,request,render_template,session,flash,redirect,url_for
+from flask import Flask,g,request,render_template,session,flash,redirect,url_for,send_file
 import xml.etree.ElementTree as ET
 import sqlite3
-import datetime
+from io import BytesIO
 
 
 app = Flask(__name__)
@@ -115,6 +115,17 @@ def add_bug():
                             areas=areas,status=status,priority=priority,resolution=resolution)
 
 
+@app.route("/view_attachment",methods=["GET","POST"])
+def view_attachment():
+    if request.method=="POST":
+        option = request.form['options']
+        db = get_db()
+        cur = db.execute(f"select * from attach where attach_id={option}")
+        data=cur.fetchall()
+            
+        return send_file(BytesIO(data[0][3]), download_name=data[0][2], as_attachment=True)
+    
+
 @app.route("/upload_attachment/<bug_id>",methods=["GET","POST"])
 def upload_attachment(bug_id):
     db = get_db()
@@ -163,9 +174,11 @@ def update_bug(bug_id):
     priority = [1,2,3,4,5,6]
     resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
                   "Disagree with suggestion","Duplicate"]
+    attach_cur = db.execute(f'select * from attach where bug_id={bug_id}')
+    attach = attach_cur.fetchall()
     return render_template("update_bug.html",bug_id=bug_id,data=data,programs=programs,report_options=report_options,\
                            severity=severity,employees=employees,areas=areas,\
-                            status=status,priority=priority,resolution=resolution)
+                            status=status,priority=priority,resolution=resolution,attach=attach)
 
 @app.route("/result_bug",methods=["GET","POST"])
 def result_bug():

@@ -165,6 +165,19 @@
     </form>
     <hr/>
     <br/>
+    <form action="{{url_for('view_attachment')}}" method="post">
+        <label for="options"><b>Attachment</b></label>
+        &nbsp;
+        <select name="options">
+            <option value="None" selected>None</option>
+            {% for option in attach %}
+                <option value="{{option[0]}}">{{option[2]}}</option>
+            {% endfor %}
+        </select>
+        <input type="submit" class="btn" value ="Submit">
+    </form>
+    <hr/>
+    <br/>
     <form action = "{{url_for('upload_attachment',bug_id=bug_id)}}" method = "post" enctype="multipart/form-data">  
         <input type="file" name="file" />  
         <input type = "submit" class="btn" value="Submit">  
