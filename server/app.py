@@ -1,6 +1,7 @@
-from flask import Flask,g,request,render_template,session,flash,redirect,url_for
+from flask import Flask,g,request,render_template,session,flash,redirect,url_for,send_file
 import xml.etree.ElementTree as ET
 import sqlite3
+from io import BytesIO
 
 
 app = Flask(__name__)
@@ -23,6 +24,13 @@ def close_db(error):
         g.sqlite_db.close()
 
 ################## INDEX, LOGIN, LOGOUT #####################
+@app.route("/index_page",methods=["GET"])
+def index_page():
+    if "loggedin" in session:
+        condition = False
+        if session['user_level']==3:
+            condition=True
+    return render_template('index.html',condition=condition,name=session["username"],userlevel=session["user_level"])
 @app.route("/",methods=["GET","POST"])
 def index():
     if request.method == 'POST' and 'username' in request.form and 'password' in request.form:
@@ -53,14 +61,183 @@ def logout():
         flash("You must be logged in first")
     return render_template("login.html")
 
-@app.route("/add_bug")
+########### HELPER FUNCTIONS #########################
+def get_programs():
+    db=get_db()
+    cur = db.execute('select * from programs')
+    programs = cur.fetchall()
+    return programs
+
+def get_employees():
+    db=get_db()
+    cur = db.execute('select * from employees')
+    employees = cur.fetchall()
+    return employees
+
+def get_area():
+    db = get_db()
+    cur = db.execute("select * from areas")
+    areas = cur.fetchall()
+    return areas
+####################### BUG######################
+
+@app.route("/add_bug",methods=["GET","POST"])
 def add_bug():
-    return render_template("add_bug.html")
+    if request.method=="POST":
+        form_data = request.form.to_dict()
+        columns = []
+        values = []
+        placeholders= []
+        for key, value in form_data.items():
+            if value:
+                columns.append(key)
+                values.append(value)
+                placeholders.append("?")
+        
+        db = get_db()
+        query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({','.join(placeholders)})"
+        db.execute(query,values)
+        db.commit()
+        return redirect(url_for("add_bug"))
+    ##options for form
+    programs = get_programs()
+    areas = get_area()
+    employees = get_employees()
+    report_options = ["Coding Error","Design Issue","Suggestion","Documentation","Hardware","Query"]
+    severity = ["Minor", "Serious", "Fatal"]
+    status=["open","closed","resolved"]
+    priority = [1,2,3,4,5,6]
+    resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
+                  "Disagree with suggestion","Duplicate"]
+    #entry_date = datetime.datetime.now().strftime("%m/%d/%Y")
+    return render_template("add_bug.html",program_options=programs,\
+                           report_options=report_options,severity=severity,employees=employees,\
+                            areas=areas,status=status,priority=priority,resolution=resolution)
 
-@app.route("/update_bug")
-def update_bug():
-    return render_template("update_bug.html")
 
+@app.route("/view_attachment",methods=["GET","POST"])
+def view_attachment():
+    if request.method=="POST":
+        option = request.form['options']
+        db = get_db()
+        cur = db.execute(f"select * from attach where attach_id={option}")
+        data=cur.fetchall()
+            
+        return send_file(BytesIO(data[0][3]), download_name=data[0][2], as_attachment=True)
+    
+
+@app.route("/upload_attachment/<bug_id>",methods=["GET","POST"])
+def upload_attachment(bug_id):
+    db = get_db()
+    file = request.files['file']
+    filename = file.filename
+    data = file.read()
+    query = 'INSERT INTO attach (bug_id,filename,file) VALUES (?, ?,?)'
+    db.execute(query,(bug_id,filename,data))
+    db.commit()
+    return redirect(url_for("update_bug",bug_id=bug_id))
+
+@app.route("/update_bug/<bug_id>",methods=["GET","POST"])
+def update_bug(bug_id):
+    db = get_db()
+    if request.method == "POST":
+        form_data = request.form.to_dict()
+        columns = []
+        values = []
+        placeholders= []
+        for key, value in form_data.items():
+            if value:
+                columns.append(key)
+                values.append(value)
+                placeholders.append("?")
+        
+        sql_query = "UPDATE bugs SET "
+        for i, col in enumerate(columns):
+            sql_query += f"{col} = {placeholders[i]}"
+            if i != len(columns) - 1:
+                sql_query += ", "
+        sql_query += " WHERE bug_id = ?"
+        db.execute(sql_query,values+[bug_id])
+        db.commit()
+        return redirect(url_for("update_bug",bug_id=bug_id))
+
+    
+    query = f"select * from bugs where bug_id={bug_id}"
+    cur = db.execute(query)
+    data = cur.fetchall()
+    programs = get_programs()
+    employees = get_employees()
+    areas = get_area()
+    report_options = ["Coding Error","Design Issue","Suggestion","Documentation","Hardware","Query"]
+    severity = ["Minor", "Serious", "Fatal"]
+    status=["open","closed","resolved"]
+    priority = [1,2,3,4,5,6]
+    resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
+                  "Disagree with suggestion","Duplicate"]
+    attach_cur = db.execute(f'select * from attach where bug_id={bug_id}')
+    attach = attach_cur.fetchall()
+    return render_template("update_bug.html",bug_id=bug_id,data=data,programs=programs,report_options=report_options,\
+                           severity=severity,employees=employees,areas=areas,\
+                            status=status,priority=priority,resolution=resolution,attach=attach)
+
+@app.route("/result_bug",methods=["GET","POST"])
+def result_bug():
+    program = request.form['program_options']
+    report_type = request.form['report_options']
+    severity = request.form['severity']
+    areas = request.form['areas']
+    assigned_to = request.form['assigned_to']
+    reported_by = request.form['reported_by']
+    status = request.form['status']
+    priority = request.form['priority']
+    resolution = request.form['resolution']
+    db=get_db()
+    query = "SELECT * FROM bugs WHERE "
+    if program != 'ALL':
+        query += f"program_options = '{program}' AND "
+    if report_type != 'ALL':
+        query += f"report_type = '{report_type}' AND "
+    if severity != 'ALL':
+        query += f"severity = '{severity}' AND "
+    if areas != 'ALL':
+        query += f"functional_area = '{areas}' AND "
+    if assigned_to != 'ALL':
+        query += f"assigned_to = '{assigned_to}' AND "
+    if reported_by != 'ALL':
+        query += f"reported_by = '{reported_by}' AND "
+    if status != 'ALL':
+        query += f"status = '{status}' AND "
+    if priority != 'ALL':
+        query += f"priority = '{priority}' AND "
+    if resolution != 'ALL':
+        query += f"resolution = '{resolution}' AND "
+    query = query[:-5]
+    results = db.execute(query)
+    data = results.fetchall()
+    return render_template("result_bug.html",data=data)
+
+@app.route("/search_bug",methods=["GET","POST"])
+def search_bug():
+    db=get_db()
+    query = 'select * from bugs'
+    cur = db.execute(query)
+    data= cur.fetchall()
+    programs =[i[1] for i in data]
+    report_type=[i[2] for i in data]
+    severity=[i[3] for i in data]
+    area = [i[9] for i in data]
+    assigned_to=[i[10] for i in data]
+    reported_by=[i[7] for i in data]
+    status=[i[12] for i in data]
+    priority=[i[13] for i in data]
+    resolution=[i[14] for i in data]
+    return render_template("search_bug.html",programs=programs,report_type=report_type,severity=severity,\
+                           area=area,assigned_to=assigned_to,reported_by=reported_by,status=status,\
+                            priority=priority,resolution=resolution)
+
+
+
+################## DATABASE MAINTENANCE ##########################
 @app.route("/database_maintenance")
 def database_maintenance():
     return render_template("database_maintenance.html")
@@ -84,11 +261,7 @@ def add_employee():
     db.commit()
     return render_template("add_employess.html",condition="True",name=name)
 
-def get_employees():
-    db=get_db()
-    cur = db.execute('select * from employees')
-    employees = cur.fetchall()
-    return employees
+
 
 @app.route("/process_update_employee",methods=["POST"])
 def process_update_employee():
@@ -160,11 +333,7 @@ def delete_employee():
 
 ###########Programs############
 
-def get_programs():
-    db=get_db()
-    cur = db.execute('select * from programs')
-    programs = cur.fetchall()
-    return programs
+
 
 #add programs
 @app.route("/add_program",methods=["GET","POST"])
