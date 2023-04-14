@@ -163,6 +163,12 @@
             <button><a href="{{url_for('index_page')}}" style="text-decoration:none;">Cancel</a></button>
         </div> 
     </form>
+    <hr/>
+    <br/>
+    <form action = "{{url_for('upload_attachment',bug_id=bug_id)}}" method = "post" enctype="multipart/form-data">  
+        <input type="file" name="file" />  
+        <input type = "submit" class="btn" value="Submit">  
+    </form>  
     
 </body>
 </html>

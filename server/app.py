@@ -114,6 +114,18 @@ def add_bug():
                            report_options=report_options,severity=severity,employees=employees,\
                             areas=areas,status=status,priority=priority,resolution=resolution)
 
+
+@app.route("/upload_attachment/<bug_id>",methods=["GET","POST"])
+def upload_attachment(bug_id):
+    db = get_db()
+    file = request.files['file']
+    filename = file.filename
+    data = file.read()
+    query = 'INSERT INTO attach (bug_id,filename,file) VALUES (?, ?,?)'
+    db.execute(query,(bug_id,filename,data))
+    db.commit()
+    return redirect(url_for("update_bug",bug_id=bug_id))
+
 @app.route("/update_bug/<bug_id>",methods=["GET","POST"])
 def update_bug(bug_id):
     db = get_db()
@@ -133,9 +145,10 @@ def update_bug(bug_id):
             sql_query += f"{col} = {placeholders[i]}"
             if i != len(columns) - 1:
                 sql_query += ", "
-        sql_query += " WHERE id = ?"
+        sql_query += " WHERE bug_id = ?"
         db.execute(sql_query,values+[bug_id])
         db.commit()
+        return redirect(url_for("update_bug",bug_id=bug_id))
 
     
     query = f"select * from bugs where bug_id={bug_id}"
