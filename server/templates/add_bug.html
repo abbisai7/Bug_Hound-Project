@@ -7,28 +7,31 @@
     <title>Add Bug</title>
 </head>
 <body>
+    <a href="{{url_for('logout')}}">LogOut</a>
+    <br/>
+    <a href="{{url_for('index_page')}}">Home</a> 
     <h1>New Bug Report Type</h1>
     <form method="POST" action="{{url_for('add_bug')}}">
         <div class="first_row">
             <label id="program">Program</label>
         <select id ="program" name="program_options">
-            <option value="{{'-'.join(program_options[0][1:])}}" selected>{{'-'.join(program_options[0][1:])}}</option>
-            {% for option in program_options[1:] %}
+            <option style="display:none;"></option>
+            {% for option in program_options %}
             <option value="{{'-'.join(option[1:])}}">{{'-'.join(option[1:])}}</option>
             {% endfor %}
         </select>
         &nbsp;
         <label id="report_type">Report Type</label>
         <select id ="report_type" name="report_options">
-            <option value="{{report_options[0]}}" selected>{{report_options[0]}}</option>
-            {% for option in report_options[1:] %}
+            <option style="display:none;"></option>
+            {% for option in report_options %}
             <option value="{{option}}">{{option}}</option>
             {% endfor %}
         </select>
         <label id="severity">Severity</label>
         <select id ="severity" name="severity">
-            <option value="{{severity[0]}}" selected>{{severity[0]}}</option>
-            {% for option in severity[1:] %}
+            <option style="display:none;"></option>
+            {% for option in severity %}
             <option value="{{option}}">{{option}}</option>
             {% endfor %}
         </select>
@@ -40,6 +43,7 @@
             &nbsp;
             <label id="reproducible">Reproducible?</label>
             <select id ="reproducible" name="reproducible">
+            <option style="display:none;"></option>
             <option value="Yes" selected>Yes</option>
             <option value="No">No</option>
             </select>
@@ -54,8 +58,8 @@
         <div class="fourth_row">
             <label id="reported_by">Reported By</label>
             <select id ="reported_by" name="reported_by">
-            <option value="{{employees[0][1]}}" selected>{{employees[0][1]}}</option>
-            {% for option in employees[1:] %}
+            <option style="display:none;"></option>
+            {% for option in employees %}
             <option value="{{option[1]}}">{{option[1]}}</option>
             {% endfor %}
             </select>
@@ -157,5 +161,8 @@
             <button><a href="{{url_for('index_page')}}" style="text-decoration:none;">Cancel</a></button>
         </div>  
     </form>
+    {% if condition %}
+    <h3>Fill Atleast Program Details</h3>
+    {% endif %}
 </body>
 </html>

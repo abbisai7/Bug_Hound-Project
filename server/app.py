@@ -83,22 +83,6 @@ def get_area():
 
 @app.route("/add_bug",methods=["GET","POST"])
 def add_bug():
-    if request.method=="POST":
-        form_data = request.form.to_dict()
-        columns = []
-        values = []
-        placeholders= []
-        for key, value in form_data.items():
-            if value:
-                columns.append(key)
-                values.append(value)
-                placeholders.append("?")
-        
-        db = get_db()
-        query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({','.join(placeholders)})"
-        db.execute(query,values)
-        db.commit()
-        return redirect(url_for("add_bug"))
     ##options for form
     programs = get_programs()
     areas = get_area()
@@ -109,6 +93,32 @@ def add_bug():
     priority = [1,2,3,4,5,6]
     resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
                   "Disagree with suggestion","Duplicate"]
+    if "loggedin" not in session:
+        return render_template("login.html")
+    if request.method=="POST":
+        form_data = request.form.to_dict()
+        columns = []
+        values = []
+        placeholders= []
+        for key, value in form_data.items():
+            if value:
+                columns.append(key)
+                values.append(value)
+                placeholders.append("?")
+        if request.form['program_options']:
+            db = get_db()
+            query = f"INSERT INTO bugs ({', '.join(columns)}) VALUES ({','.join(placeholders)})"
+            db.execute(query,values)
+            db.commit()
+            return redirect(url_for("add_bug"))
+        else:
+            return render_template("add_bug.html",program_options=programs,\
+                           report_options=report_options,severity=severity,employees=employees,\
+                            areas=areas,status=status,priority=priority,resolution=resolution,\
+                                condition=True)
+
+        
+    
     #entry_date = datetime.datetime.now().strftime("%m/%d/%Y")
     return render_template("add_bug.html",program_options=programs,\
                            report_options=report_options,severity=severity,employees=employees,\
@@ -117,6 +127,8 @@ def add_bug():
 
 @app.route("/view_attachment",methods=["GET","POST"])
 def view_attachment():
+    if "loggedin" not in session:
+        return render_template("login.html")
     if request.method=="POST":
         option = request.form['options']
         db = get_db()
@@ -128,6 +140,8 @@ def view_attachment():
 
 @app.route("/upload_attachment/<bug_id>",methods=["GET","POST"])
 def upload_attachment(bug_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     db = get_db()
     file = request.files['file']
     filename = file.filename
@@ -139,6 +153,8 @@ def upload_attachment(bug_id):
 
 @app.route("/update_bug/<bug_id>",methods=["GET","POST"])
 def update_bug(bug_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     db = get_db()
     if request.method == "POST":
         form_data = request.form.to_dict()
@@ -182,6 +198,8 @@ def update_bug(bug_id):
 
 @app.route("/result_bug",methods=["GET","POST"])
 def result_bug():
+    if "loggedin" not in session:
+        return render_template("login.html")
     program = request.form['program_options']
     report_type = request.form['report_options']
     severity = request.form['severity']
@@ -218,6 +236,8 @@ def result_bug():
 
 @app.route("/search_bug",methods=["GET","POST"])
 def search_bug():
+    if "loggedin" not in session:
+        return render_template("login.html")
     db=get_db()
     query = 'select * from bugs'
     cur = db.execute(query)
@@ -256,15 +276,20 @@ def add_employee():
     username = request.form["user_name"]
     password = request.form["password"]
     user_level = request.form["user_level"]
-    db=get_db()
-    db.execute('insert into employees (name,username,password,userlevel) values(?,?,?,?)',[name,username,password,user_level] )
-    db.commit()
-    return render_template("add_employess.html",condition="True",name=name)
+    if name and username and password and user_level:
+        db=get_db()
+        db.execute('insert into employees (name,username,password,userlevel) values(?,?,?,?)',[name,username,password,user_level] )
+        db.commit()
+        return render_template("add_employess.html",condition="True",name=name,condition1=False)
+    else:
+        return render_template("add_employess.html",condition1=True)
 
 
 
 @app.route("/process_update_employee",methods=["POST"])
 def process_update_employee():
+    if "loggedin" not in session:
+        return render_template("login.html")
     emp_id = request.form["emp_id"]
     name = request.form["name"]
     username = request.form["username"]
@@ -281,6 +306,8 @@ def process_update_employee():
 #Update Employee
 @app.route("/update_employee",methods=["GET","POST"])
 def update_employee():
+    if "loggedin" not in session:
+        return render_template("login.html")
     options = ["emp_id","name","username"]
     employees = get_employees()
     if request.method == "GET":
@@ -301,6 +328,8 @@ def update_employee():
 
 @app.route("/delete_employee_id/<emp_id>",methods=["GET"])
 def delete_employee_id(emp_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     db=get_db()
     db.execute('delete from employees where emp_id={0}'.format(emp_id))
     db.commit()
@@ -309,6 +338,8 @@ def delete_employee_id(emp_id):
 #delete Employee
 @app.route("/delete_employee",methods=["GET","POST"])
 def delete_employee():
+    if "loggedin" not in session:
+        return render_template("login.html")
     options = ["emp_id","name","username"]
     employees = get_employees()
     if request.method == "GET":
@@ -346,15 +377,22 @@ def add_program():
     program = request.form['program']
     program_release = request.form["program_release"]
     program_version = request.form["program_version"]
-    db = get_db()
-    db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
-    db.commit()
     programs = get_programs()
-    return render_template("add_programs.html",programs=programs,condition="True",program=program,\
+    if program and program_release and program_version:
+        db = get_db()
+        db.execute('insert into programs (program,program_release,program_version) values(?,?,?)',[program,program_release,program_version] )
+        db.commit()
+        return render_template("add_programs.html",programs=programs,condition="True",program=program,\
                            release=program_release,version=program_version)
+    else:
+        return render_template("add_programs.html",programs=programs,condition1="True",program=program,\
+                           release=program_release,version=program_version)
+
 
 @app.route("/process_update_program",methods=["POST"])
 def process_update_program():
+    if "loggedin" not in session:
+        return render_template("login.html")
     prog_id = request.form["prog_id"]
     program_name = request.form["program_name"]
     program_release = request.form["program_release"]
@@ -371,6 +409,8 @@ def process_update_program():
 #Update Program
 @app.route("/update_program",methods=["GET","POST"])
 def update_program():
+    if "loggedin" not in session:
+        return render_template("login.html")
     options = ["prog_id","program"]
     programs = get_programs()
     if request.method == "GET":
@@ -391,6 +431,8 @@ def update_program():
 
 @app.route("/delete_prorgam_id/<prog_id>",methods=["GET"])
 def delete_program_id(prog_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     db=get_db()
     db.execute('delete from programs where prog_id={0}'.format(prog_id))
     db.commit()
@@ -399,6 +441,8 @@ def delete_program_id(prog_id):
 #delete programs
 @app.route("/delete_program",methods=["GET","POST"])
 def delete_program():
+    if "loggedin" not in session:
+        return render_template("login.html")
     options = ["prog_id","program"]
     programs = get_programs()
     if request.method == "GET":
@@ -425,6 +469,8 @@ def delete_program():
 ############AREAS#################
 @app.route("/update_area_program/<area_id>/<prog_id>",methods=["POST"])
 def update_area_program(area_id,prog_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     area_name = request.form["area_edit"]
     db = get_db()
     db.execute(f"update areas set area='{area_name}' where area_id='{area_id}'")
@@ -435,27 +481,37 @@ def update_area_program(area_id,prog_id):
 
 @app.route("/add_area_program/<prog_id>",methods=["POST"])
 def add_area_program(prog_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     area_name = request.form["area_edit"]
-    db = get_db()
-    db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area_name] )
-    db.commit()
-    return redirect(url_for("add_update_area_program",prog_id=prog_id))
+    if area_name:
+        db = get_db()
+        db.execute('insert into areas (prog_id,area) values(?,?)',[prog_id,area_name] )
+        db.commit()
+        return redirect(url_for("add_update_area_program",prog_id=prog_id,condition1=False))
+    else:
+        return redirect(url_for("add_update_area_program",prog_id=prog_id,condition1=True))
+
     
 
-@app.route("/add_update_area_program/<prog_id>",methods=["GET"])
-def add_update_area_program(prog_id):
+@app.route("/add_update_area_program/<prog_id>/<condition1>",methods=["GET"])
+def add_update_area_program(prog_id,condition1=False):
+    if "loggedin" not in session:
+        return render_template("login.html")
     if request.method == "GET":
         db = get_db()
         cur = db.execute(f"select * from areas where prog_id='{prog_id}'")
         data = cur.fetchall()
         cur1 = db.execute(f"select program from programs where prog_id='{prog_id}'")
         name=cur1.fetchall()[0][0]
-        return render_template("update_area_id.html",data=data,prog_id=prog_id,name=name)
+        return render_template("update_area_id.html",data=data,prog_id=prog_id,name=name,condition1=condition1)
     
 
 #add areas
 @app.route("/add_area",methods=["GET","POST"])
 def add_area():
+    if "loggedin" not in session:
+        return render_template("login.html")
     programs = get_programs()
     if not programs:
         return render_template("no_programs.html")
@@ -471,6 +527,8 @@ def add_area():
 
 @app.route("/delete_area/<area_id>/<prog_id>",methods=["GET","POST"])
 def delete_area(area_id,prog_id):
+    if "loggedin" not in session:
+        return render_template("login.html")
     db= get_db()
     db.execute(f"delete from areas where area_id='{area_id}'")
     db.commit()
@@ -480,6 +538,8 @@ def delete_area(area_id,prog_id):
 ######## Export Program table to XML #######################
 @app.route("/export_program_xml",methods=["GET"])
 def export_program_xml():
+    if "loggedin" not in session:
+        return render_template("login.html")
     db = get_db()
     cur = db.execute("select * from programs")
     rows = cur.fetchall()
@@ -501,6 +561,8 @@ def export_program_xml():
 
 @app.route("/export_employee_ascii")
 def export_employee_ascii():
+    if "loggedin" not in session:
+        return render_template("login.html")
     db = get_db()
     cur = db.execute("select * from employees")
     rows = cur.fetchall()

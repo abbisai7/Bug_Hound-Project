@@ -8,6 +8,11 @@
 </head>
 <body>
     <table style="width:25%", border="1">
+        <tr>
+            <td>Program</td>
+            <td>Release</td>
+            <td>Version</td>
+        </tr>
         {% for item in programs %}    
         <tr>               
             <td>{{item[1]}}</td>
@@ -16,8 +21,14 @@
         </tr>
         {% endfor %}    
     </table>
-    <h1> Add Program</h1>
+    
+    <br/>
+    <a href="{{url_for('database_maintenance')}}">Database Maintenance</a>
+    <br/>
+    <a href="{{url_for('index_page')}}">Home</a> 
+    <br/>
     <a href="{{url_for('logout')}}">LogOut</a>
+    <h1> Add Program</h1>
     <form action="{{url_for('add_program')}}" method="POST">
         <label for="program">Program Name</label>&nbsp&nbsp;
         <input name="program" type="text" class="textbox"/></br></br></br>
@@ -29,6 +40,9 @@
     </form>
     {% if condition %}
     <h3>Program {{program}} with {{release}} and {{version}} has been updated successfully </h3>
+    {% endif %}
+    {% if condition1 %}
+    <h3>Fill all details</h3>
     {% endif %}
     
 </body>
