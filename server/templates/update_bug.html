@@ -7,6 +7,9 @@
     <title>Update Bug</title>
 </head>
 <body>
+    <a href="{{url_for('logout')}}">LogOut</a>
+    <br/>
+    <a href="{{url_for('index_page')}}">Home</a>
     <h1>Update Bug Page for {{bug_id}}</h1>
     <form method="POST" action="{{url_for('update_bug',bug_id=bug_id)}}">
         <div class="first_row">
