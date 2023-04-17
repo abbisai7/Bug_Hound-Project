@@ -22,9 +22,9 @@
             </tr>
             <tr> <td><label id="report_type">Report Type</label></td>
                 <td>
-                    <select id ="report_type" name="report_options">
+                <select id ="report_type" name="report_options">
                 <option value=ALL selected>ALL</option>
-                {% for option in report %}
+                {% for option in report_type %}
                 <option value="{{option}}">{{option}}</option>
                 {% endfor %}
                 </select>

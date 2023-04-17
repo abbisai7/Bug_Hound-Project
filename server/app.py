@@ -239,18 +239,22 @@ def search_bug():
     if "loggedin" not in session:
         return render_template("login.html")
     db=get_db()
+    employee = get_employees()
     query = 'select * from bugs'
     cur = db.execute(query)
     data= cur.fetchall()
     programs =[i[1] for i in data]
-    report_type=[i[2] for i in data]
-    severity=[i[3] for i in data]
-    area = [i[9] for i in data]
-    assigned_to=[i[10] for i in data]
-    reported_by=[i[7] for i in data]
-    status=[i[12] for i in data]
-    priority=[i[13] for i in data]
-    resolution=[i[14] for i in data]
+    areas = get_area()
+    area = [i for i in areas]
+    assigned_to=[i[2] for i in employee]
+    reported_by=[i[2] for i in employee]
+    status=["open","closed","resolved"]
+    report_type = ["Coding Error","Design Issue","Suggestion","Documentation","Hardware","Query"]
+    severity = ["Minor", "Serious", "Fatal"]
+    status=["open","closed","resolved"]
+    priority = [1,2,3,4,5,6]
+    resolution = ["Pending","Fixed","Irreproducible","Deferred","As designed","Withdrawn by reporter","Need more info",\
+                  "Disagree with suggestion","Duplicate"]
     return render_template("search_bug.html",programs=programs,report_type=report_type,severity=severity,\
                            area=area,assigned_to=assigned_to,reported_by=reported_by,status=status,\
                             priority=priority,resolution=resolution)
